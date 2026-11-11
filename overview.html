@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Isometric Room Overview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f1e7;
+    --panel: #fffaf0;
+    --ink: #2b2433;
+    --muted: #7a6f80;
+    --line: #d9cdb8;
+    --accent: #d9774b;
+    --accent-soft: #f6d9c7;
+    --ok: #5d9c6a;
+    --warn: #d9a441;
+    --bad: #c4564a;
+    --wall: #8b7186;
+    --floor: #d9a86c;
+    --night: rgba(20, 22, 48, .62);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1c2433;
+      --panel: #253047;
+      --ink: #ece4d8;
+      --muted: #9aa3b5;
+      --line: #36425c;
+      --accent: #f0915f;
+      --accent-soft: #4a3a3a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1c2433;
+    --panel: #253047;
+    --ink: #ece4d8;
+    --muted: #9aa3b5;
+    --line: #36425c;
+    --accent: #f0915f;
+    --accent-soft: #4a3a3a;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.55 "JetBrains Mono", ui-monospace, monospace;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 40px 16px 64px; }
+  h1, h2 { font-family: "Press Start 2P", monospace; font-weight: 400; }
+  h1 { font-size: 22px; line-height: 1.5; margin: 0 0 12px; }
+  h2 { font-size: 13px; margin: 48px 0 16px; color: var(--accent); }
+  p.lede { color: var(--muted); max-width: 620px; margin: 0; }
+
+  /* ---- pipeline ---- */
+  .pipeline {
+    display: grid;
+    grid-template-columns: 1fr 36px 1fr 36px 1fr 36px 1fr;
+    align-items: stretch;
+  }
+  .stage {
+    background: var(--panel);
+    border: 2px solid var(--line);
+    padding: 16px 14px;
+    transition: border-color .2s, transform .2s, box-shadow .2s;
+    box-shadow: 4px 4px 0 var(--line);
+  }
+  .stage.active {
+    border-color: var(--accent);
+    box-shadow: 4px 4px 0 var(--accent);
+    transform: translate(-2px, -2px);
+  }
+  .stage .icon { font-size: 22px; }
+  .stage h3 { font-size: 13px; margin: 8px 0 4px; }
+  .stage p { font-size: 12px; color: var(--muted); margin: 0; }
+  .stage ul { font-size: 12px; color: var(--muted); margin: 6px 0 0; padding-left: 16px; }
+  .link { position: relative; display: flex; align-items: center; }
+  .link::before {
+    content: ""; position: absolute; left: 4px; right: 4px; top: 50%;
+    border-top: 2px dashed var(--line);
+  }
+  .link .dot {
+    position: absolute; top: calc(50% - 5px); left: 0;
+    width: 10px; height: 10px; background: var(--accent); opacity: 0;
+  }
+  .link.go .dot { animation: travel .35s linear forwards; }
+  @keyframes travel {
+    0%   { left: 0; opacity: 1; }
+    90%  { left: calc(100% - 10px); opacity: 1; }
+    100% { left: calc(100% - 10px); opacity: 0; }
+  }
+
+  @media (max-width: 760px) {
+    .pipeline { grid-template-columns: 1fr; }
+    .link { height: 28px; justify-content: center; }
+    .link::before { left: 50%; right: auto; top: 2px; bottom: 2px; border-top: 0; border-left: 2px dashed var(--line); }
+    .link .dot { left: calc(50% - 4px); top: 0; }
+    .link.go .dot { animation: travel-v .35s linear forwards; }
+    @keyframes travel-v { 0% { top: 0; opacity: 1; } 90% { top: calc(100% - 10px); opacity: 1; } 100% { top: calc(100% - 10px); opacity: 0; } }
+  }
+
+  /* ---- demo ---- */
+  .demo { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; }
+  @media (max-width: 760px) { .demo { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 2px solid var(--line); box-shadow: 4px 4px 0 var(--line); padding: 16px; }
+  .room svg { width: 100%; height: auto; display: block; image-rendering: pixelated; }
+  .controls { display: flex; flex-direction: column; gap: 14px; }
+  .ctl label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .seg { display: flex; flex-wrap: wrap; gap: 6px; }
+  .seg button {
+    font: inherit; font-size: 12px; cursor: pointer;
+    padding: 6px 10px; background: var(--bg); color: var(--ink);
+    border: 2px solid var(--line);
+  }
+  .seg button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
+  .seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .log { margin-top: 4px; font-size: 11.5px; max-height: 150px; overflow: auto; }
+  .log div { padding: 4px 0; border-bottom: 1px dashed var(--line); color: var(--muted); }
+  .log div:first-child { color: var(--ink); }
+  .note { font-size: 12px; color: var(--muted); margin-top: 10px; }
+
+  .open { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .open .card { font-size: 13px; }
+  .open .card b { display: block; margin-bottom: 4px; }
+  .open .card span { color: var(--muted); font-size: 12px; }
+
+  /* room animation bits */
+  #night { transition: opacity .5s; }
+  #glow { transition: opacity .5s; }
+  #avatar { transition: transform 1.2s steps(8); }
+  .bob { animation: bob 1s steps(2) infinite; }
+  @keyframes bob { 50% { transform: translateY(-2px); } }
+  #bubble { transition: opacity .3s; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Isometric Room</h1>
+  <p class="lede">A pixel-art copy of a real room. A camera watches the real room, detection pipelines spot changes, and the pixel room and its little avatar update to match.</p>
+
+  <h2>How it flows</h2>
+  <div class="pipeline" id="pipeline">
+    <div class="stage" data-i="0">
+      <div class="icon">📷</div>
+      <h3>Camera</h3>
+      <p>A live feed of the real room.</p>
+    </div>
+    <div class="link" data-i="0"><span class="dot"></span></div>
+    <div class="stage" data-i="1">
+      <div class="icon">🔍</div>
+      <h3>Detection</h3>
+      <p>Pipelines watching for:</p>
+      <ul><li>light on / off</li><li>laundry level</li><li>dishes</li></ul>
+    </div>
+    <div class="link" data-i="1"><span class="dot"></span></div>
+    <div class="stage" data-i="2">
+      <div class="icon">🗄️</div>
+      <h3>Backend</h3>
+      <p>Keeps the current room state and sends an event when something changes.</p>
+    </div>
+    <div class="link" data-i="2"><span class="dot"></span></div>
+    <div class="stage" data-i="3">
+      <div class="icon">🏠</div>
+      <h3>Frontend</h3>
+      <p>The pixel room and avatar redraw to match the event.</p>
+    </div>
+  </div>
+
+  <h2>Try it</h2>
+  <div class="demo">
+    <div class="card room">
+      <svg viewBox="0 0 160 110" shape-rendering="crispEdges" aria-label="Pixel room preview">
+        <!-- wall + floor -->
+        <rect x="0" y="0" width="160" height="70" fill="var(--wall)"/>
+        <rect x="0" y="70" width="160" height="40" fill="var(--floor)"/>
+        <rect x="0" y="69" width="160" height="2" fill="#5a4252"/>
+        <g fill="#c99558"><rect x="0" y="82" width="160" height="1"/><rect x="0" y="95" width="160" height="1"/></g>
+        <!-- window -->
+        <rect x="64" y="12" width="28" height="24" fill="#f3e2b0"/>
+        <rect x="77" y="12" width="2" height="24" fill="#6b5164"/>
+        <rect x="64" y="23" width="28" height="2" fill="#6b5164"/>
+        <rect x="62" y="10" width="32" height="2" fill="#6b5164"/>
+        <!-- lamp -->
+        <circle id="glow" cx="24" cy="44" r="22" fill="#ffe9a3" opacity=".35"/>
+        <rect x="23" y="44" width="2" height="30" fill="#3b2f3a"/>
+        <rect x="18" y="74" width="12" height="3" fill="#3b2f3a"/>
+        <rect id="shade" x="16" y="36" width="16" height="10" fill="#ffd77a"/>
+        <!-- sink / counter -->
+        <rect x="112" y="50" width="40" height="28" fill="#7d8ea0"/>
+        <rect x="112" y="48" width="40" height="4" fill="#a9b6c3"/>
+        <rect x="120" y="52" width="24" height="6" fill="#55667a"/>
+        <rect x="130" y="40" width="3" height="10" fill="#a9b6c3"/>
+        <g id="dishes">
+          <rect x="121" y="44" width="10" height="3" fill="#f0ece4"/>
+          <rect x="123" y="41" width="8" height="3" fill="#e6dfd2"/>
+          <rect x="134" y="43" width="8" height="5" fill="#d9774b"/>
+          <rect x="124" y="45" width="2" height="1" fill="#8a6a3a"/>
+        </g>
+        <!-- laundry bag -->
+        <g id="bag">
+          <rect id="bagBody" x="46" y="82" width="18" height="16" fill="#6e86b8"/>
+          <rect x="46" y="80" width="18" height="2" fill="#4c628f"/>
+          <g id="clothes">
+            <rect x="48" y="76" width="6" height="5" fill="#e07b6a"/>
+            <rect x="54" y="74" width="7" height="7" fill="#f2d074"/>
+          </g>
+        </g>
+        <!-- avatar -->
+        <g id="avatar" transform="translate(84 0)">
+          <g class="bob">
+            <rect x="0" y="76" width="8" height="7" fill="#f2c79b"/>
+            <rect x="0" y="74" width="8" height="3" fill="#3b2f3a"/>
+            <rect x="2" y="79" width="1" height="1" fill="#2b2433"/>
+            <rect x="5" y="79" width="1" height="1" fill="#2b2433"/>
+            <rect x="-1" y="83" width="10" height="9" fill="#5d9c6a"/>
+            <rect x="0" y="92" width="3" height="5" fill="#3b4a6b"/>
+            <rect x="5" y="92" width="3" height="5" fill="#3b4a6b"/>
+          </g>
+          <g id="bubble" opacity="0">
+            <rect x="-14" y="58" width="36" height="12" fill="#fffaf0" stroke="#2b2433" stroke-width="1"/>
+            <rect x="2" y="70" width="3" height="3" fill="#fffaf0"/>
+            <text id="bubbleText" x="4" y="66.5" font-size="6" text-anchor="middle" fill="#2b2433" font-family="monospace"></text>
+          </g>
+        </g>
+        <!-- night overlay -->
+        <rect id="night" x="0" y="0" width="160" height="110" fill="var(--night)" opacity="0" pointer-events="none"/>
+      </svg>
+      <p class="note">Placeholder art. The real room will be isometric pixel art drawn in PixiJS.</p>
+    </div>
+
+    <div class="card controls">
+      <div class="ctl">
+        <label>Light</label>
+        <div class="seg" data-obj="light">
+          <button data-s="on" aria-pressed="true">on</button>
+          <button data-s="off" aria-pressed="false">off</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <label>Laundry bag</label>
+        <div class="seg" data-obj="laundry">
+          <button data-s="empty" aria-pressed="false">empty</button>
+          <button data-s="mid" aria-pressed="true">mid</button>
+          <button data-s="full" aria-pressed="false">full</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <label>Dishes</label>
+        <div class="seg" data-obj="dishes">
+          <button data-s="washed" aria-pressed="false">washed</button>
+          <button data-s="dirty" aria-pressed="true">not washed</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <label>Events received</label>
+        <div class="log" id="log"><div>Change something above to simulate a detection.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Still to decide</h2>
+  <div class="open">
+    <div class="card"><b>Camera &amp; hardware</b><span>Which camera, and what runs the detection</span></div>
+    <div class="card"><b>Detection methods</b><span>How each state change gets detected</span></div>
+    <div class="card"><b>Event delivery</b><span>How events reach the frontend, and what they look like</span></div>
+    <div class="card"><b>Art &amp; avatar</b><span>Art pipeline and how the avatar behaves</span></div>
+  </div>
+</div>
+
+<script>
+  const state = { light: 'on', laundry: 'mid', dishes: 'dirty' };
+  const $ = (id) => document.getElementById(id);
+  const stages = [...document.querySelectorAll('.stage')];
+  const links = [...document.querySelectorAll('.link')];
+  let running = Promise.resolve();
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  const reactions = {
+    light: { off: 'zzz…', on: 'morning!' },
+    laundry: { full: 'laundry!', mid: 'hmm', empty: 'clean :)' },
+    dishes: { dirty: 'dishes…', washed: 'sparkly' },
+  };
+  const targets = { light: 20, laundry: 60, dishes: 108 };
+
+  function render() {
+    const off = state.light === 'off';
+    $('night').setAttribute('opacity', off ? 1 : 0);
+    $('glow').setAttribute('opacity', off ? 0 : .35);
+    $('shade').setAttribute('fill', off ? '#8a7a5a' : '#ffd77a');
+
+    const lvl = { empty: 0, mid: 1, full: 2 }[state.laundry];
+    $('clothes').style.display = lvl === 0 ? 'none' : '';
+    $('clothes').setAttribute('transform', lvl === 2 ? 'translate(0 -4)' : '');
+    $('bagBody').setAttribute('y', lvl === 2 ? 78 : 82);
+    $('bagBody').setAttribute('height', lvl === 2 ? 20 : 16);
+
+    $('dishes').style.display = state.dishes === 'dirty' ? '' : 'none';
+  }
+
+  async function playFlow() {
+    for (let i = 0; i < stages.length; i++) {
+      stages[i].classList.add('active');
+      await wait(260);
+      stages[i].classList.remove('active');
+      if (links[i]) {
+        links[i].classList.remove('go'); void links[i].offsetWidth;
+        links[i].classList.add('go');
+        await wait(350);
+      }
+    }
+  }
+
+  async function react(obj, s) {
+    $('avatar').setAttribute('transform', `translate(${targets[obj]} 0)`);
+    await wait(1200);
+    $('bubbleText').textContent = reactions[obj][s];
+    $('bubble').setAttribute('opacity', 1);
+    await wait(1400);
+    $('bubble').setAttribute('opacity', 0);
+  }
+
+  function log(obj, s) {
+    const row = document.createElement('div');
+    row.textContent = `${new Date().toLocaleTimeString()}  ${obj} → ${s}`;
+    $('log').prepend(row);
+  }
+
+  document.querySelectorAll('.seg').forEach((seg) => {
+    seg.addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const obj = seg.dataset.obj, s = btn.dataset.s;
+      if (state[obj] === s) return;
+      seg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', b === btn));
+      running = running.then(async () => {
+        await playFlow();
+        state[obj] = s;
+        log(obj, s);
+        render();
+        await react(obj, s);
+      });
+    });
+  });
+
+  render();
+</script>
+</body>
+</html>
